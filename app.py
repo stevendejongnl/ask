@@ -27,6 +27,7 @@ def ask():
                 instructions="Answer super sarcastic.",
                 input=question
             )
+            print(response, response.output_text)
             ai_response = response.output_text[0]['content']['text']
         except:
             ai_response = None
