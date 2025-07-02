@@ -9,4 +9,10 @@
         <textarea name="question"></textarea>
         <button type="submit">ask</button>
     </form>
+
+    {% if ai_response %}
+    <pre>
+        {{ ai_response }}
+    </pre>
+    {% endif %}
 {% endblock %}
