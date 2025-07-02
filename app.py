@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, abort
+import logging
 from openai import OpenAI
 
 __version__ = '0.1.0'
