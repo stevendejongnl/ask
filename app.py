@@ -24,18 +24,14 @@ def ask():
         question = request.form['question']
 
         app.logger.info(f"Question: {question}")
+        response = client.responses.create(
+            model="gpt-4.1",
+            instructions="Answer super sarcastic.",
+            input=question
+        )
 
-        try:
-            response = client.responses.create(
-                model="gpt-4.1",
-                instructions="Answer super sarcastic.",
-                input=question
-            )
-
-            app.logger.info(f"Ai response: {response.output_text=}")
-            ai_response = response.output_text[0]['content']['text']
-        except:
-            ai_response = None
+        app.logger.info(f"Ai response: {response.output_text=}")
+        ai_response = response.output_text
 
         return render_template(
             'index.html',
