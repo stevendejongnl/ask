@@ -1,4 +1,4 @@
-name: Push Image
+name: Build and Deploy
 
 on:
   push:
@@ -17,3 +17,34 @@ jobs:
       - uses: ./.github/actions/image
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Configure kubectl for Rancher
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBECONFIG }}" | base64 --decode > ~/.kube/config
+        chmod 600 ~/.kube/config
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f deployment.yaml
+        kubectl rollout status deployment/ask -n madebysteven --timeout=300s
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n madebysteven -l app=ask
+        kubectl get svc -n madebysteven ask-app
+        kubectl get ingress -n madebysteven ask-nginx

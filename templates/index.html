@@ -1,5 +1,7 @@
 {% extends "base.html" %} {% block body %}
 
+<h1 class="title">{{ title }}</h1>
+
 <div class="chat-container">
   <div id="chat-log" class="chat-log"></div>
 
@@ -11,10 +13,10 @@
   >
     <input
       id="chat-input"
+      name="question"
       type="text"
       placeholder="{{ description }}"
       autocomplete="off"
-      value="{{ question or None }}"
     />
     <button type="submit">➤</button>
   </form>
@@ -31,10 +33,12 @@
     const question = input.value.trim();
     if (!question) return;
 
+    const formData = new FormData();
+    formData.append('question', question);
+    console.log("FormData contents:", Object.fromEntries(formData));
+
     appendMessage("user", question);
     input.value = "";
-
-    const formData = new FormData(form);
 
     try {
       const response = await fetch(form.action, {
