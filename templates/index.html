@@ -3,4 +3,10 @@
 {% block body %}
     <h1>{{ title }}</h1>
     <p>{{ description }}</p>
+
+
+    <form method="POST" action="{{ url_for('ask') }}">
+        <textarea name="question"></textarea>
+        <button type="submit">ask</button>
+    </form>
 {% endblock %}
