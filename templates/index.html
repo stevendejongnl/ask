@@ -1,18 +1,62 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block body %}
 
-{% block body %}
-    <h1>{{ title }}</h1>
-    <p>{{ description }}</p>
+<div class="chat-container">
+  <div id="chat-log" class="chat-log"></div>
 
+  <form
+    id="chat-form"
+    class="chat-form"
+    method="POST"
+    action="{{ url_for('ask') }}"
+  >
+    <input
+      id="chat-input"
+      type="text"
+      placeholder="{{ description }}"
+      autocomplete="off"
+      value="{{ question or None }}"
+    />
+    <button type="submit">➤</button>
+  </form>
+</div>
 
-    <form method="POST" action="{{ url_for('ask') }}">
-        <textarea name="question"></textarea>
-        <button type="submit">ask</button>
-    </form>
+<script>
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("chat-input");
+  const chatLog = document.getElementById("chat-log");
 
-    {% if ai_response %}
-    <pre>
-        {{ ai_response }}
-    </pre>
-    {% endif %}
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const question = input.value.trim();
+    if (!question) return;
+
+    appendMessage("user", question);
+    input.value = "";
+
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch(form.action, {
+        method: form.method.toUpperCase(),
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      appendMessage("assistant", result.message);
+    } catch (err) {
+      appendMessage("assistant", "⚠️ Error contacting server");
+      console.error(err);
+    }
+  });
+
+  function appendMessage(role, text) {
+    const message = document.createElement("div");
+    message.className = `message ${role}`;
+    message.innerText = text;
+    chatLog.appendChild(message);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+</script>
 {% endblock %}

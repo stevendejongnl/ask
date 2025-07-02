@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, abort
+from flask import Flask, render_template, request, jsonify, abort
 import logging
 from openai import OpenAI
 
@@ -9,12 +9,15 @@ app.logger.setLevel(logging.INFO)
 
 client = OpenAI()
 
+title = "Ask Steven"
+description = "Ask just stuff.."
+
 @app.route('/')
 def index():
     return render_template(
         'index.html',
-        title='Ask',
-        description='Ask stuff.'
+        title=title,
+        description=description
     )
 
 
@@ -26,18 +29,13 @@ def ask():
         app.logger.info(f"Question: {question}")
         response = client.responses.create(
             model="gpt-4.1",
-            instructions="Answer super sarcastic.",
+            instructions="Answer super sarcastic and as if Steven gives you the answer",
             input=question
         )
 
         app.logger.info(f"Ai response: {response.output_text=}")
-        ai_response = response.output_text
-
-        return render_template(
-            'index.html',
-            title='Ask',
-            description='Ask stuff.',
-            ai_response=ai_response,
-        )
+        return jsonify({
+            "answer": response.output_text
+        })
     
     return abort(405)
