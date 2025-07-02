@@ -46,9 +46,9 @@
         body: formData,
       });
 
-      const result = await response.json();
+      const answer = (await response.json())["answer"];
 
-      appendMessage("assistant", result.message);
+      appendMessage("assistant", answer);
     } catch (err) {
       appendMessage("assistant", "⚠️ Error contacting server");
       console.error(err);
