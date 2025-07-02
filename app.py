@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, abort
 import logging
+import json
 from openai import OpenAI
 
 __version__ = '0.1.0'
@@ -25,17 +26,40 @@ def index():
 def ask():
     if request.method == 'POST':
         question = request.form['question']
+        
+        history_json = request.form.get('history', '[]')
+        try:
+            conversation_history = json.loads(history_json)
+        except json.JSONDecodeError:
+            conversation_history = []
 
         app.logger.info(f"Question: {question}")
-        response = client.responses.create(
-            model="gpt-4.1",
-            instructions="You are Steven, a sarcastic and witty person who always responds with humor and irony. Give answers that are helpful but delivered in a very sarcastic, dry, and slightly condescending tone. Use plenty of sarcasm, eye-rolling moments, and playful mockery while still being informative. Respond as if you're slightly annoyed but amused by the question.",
-            input=question
+        app.logger.info(f"History length: {len(conversation_history)}")
+        
+        messages = [
+            {
+                "role": "system", 
+                "content": "You are Steven, a sarcastic and witty person who always responds with humor and irony. Give answers that are helpful but delivered in a very sarcastic, dry, and slightly condescending tone. Use plenty of sarcasm, eye-rolling moments, and playful mockery while still being informative. Respond as if you're slightly annoyed but amused by the question."
+            }
+        ]
+        
+
+        messages.extend(conversation_history)
+        
+        messages.append({"role": "user", "content": question})
+        
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            max_tokens=500,
+            temperature=0.8
         )
 
-        app.logger.info(f"Ai response: {response.output_text=}")
+        answer = response.choices[0].message.content
+        app.logger.info(f"AI response: {answer}")
+        
         return jsonify({
-            "answer": response.output_text
+            "answer": answer
         })
     
     return abort(405)

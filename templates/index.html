@@ -26,6 +26,9 @@
   const form = document.getElementById("chat-form");
   const input = document.getElementById("chat-input");
   const chatLog = document.getElementById("chat-log");
+  
+  // Store conversation history
+  let conversationHistory = [];
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -35,6 +38,8 @@
 
     const formData = new FormData();
     formData.append('question', question);
+    // Send conversation history as JSON
+    formData.append('history', JSON.stringify(conversationHistory));
     console.log("FormData contents:", Object.fromEntries(formData));
 
     appendMessage("user", question);
@@ -46,9 +51,22 @@
         body: formData,
       });
 
-      const answer = (await response.json())["answer"];
+      const result = await response.json();
+      const answer = result["answer"];
 
       appendMessage("assistant", answer);
+      
+      // Update conversation history
+      conversationHistory.push(
+        { role: "user", content: question },
+        { role: "assistant", content: answer }
+      );
+      
+      // Keep only last 10 exchanges (20 messages) to avoid too long context
+      if (conversationHistory.length > 20) {
+        conversationHistory = conversationHistory.slice(-20);
+      }
+      
     } catch (err) {
       appendMessage("assistant", "⚠️ Error contacting server");
       console.error(err);
