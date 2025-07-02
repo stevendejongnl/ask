@@ -32,7 +32,7 @@ def ask():
             ai_response = None
 
         return render_template(
-            'index.html'
+            'index.html',
             title='Ask',
             description='Ask stuff.',
             ai_response=ai_response,
