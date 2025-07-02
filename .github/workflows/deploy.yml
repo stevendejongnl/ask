@@ -37,6 +37,8 @@ jobs:
         mkdir -p ~/.kube
         echo "${{ secrets.KUBECONFIG }}" | base64 --decode > ~/.kube/config
         chmod 600 ~/.kube/config
+        # Skip TLS verification for self-signed certificates
+        kubectl config set-cluster $(kubectl config current-context) --insecure-skip-tls-verify=true
 
     - name: Deploy to Kubernetes
       run: |
