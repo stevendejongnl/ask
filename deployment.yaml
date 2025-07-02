@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: madebysteven
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ask
+  namespace: madebysteven
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ask
+  template:
+    metadata:
+      labels:
+        app: ask
+    spec:
+      containers:
+      - name: madebysteven
+        image: ghcr.io/stevendejongnl/ask:latest
+        ports:
+        - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ask-app
+  namespace: madebysteven
+spec:
+  selector:
+    app: ask
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ask-nginx
+  namespace: madebysteven
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ask.steven-dejong.nl
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ask-app
+            port:
+              number: 5000
