@@ -14,6 +14,7 @@ test:
 
 # Run Flask development server
 run:
+	@test -n "$(OPENAI_API_KEY)" || (echo "Error: OPENAI_API_KEY not set in environment" && exit 1)
 	poetry run flask run
 
 # Build Docker image
