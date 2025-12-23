@@ -5,6 +5,17 @@
 <div class="chat-container">
   <div id="chat-log" class="chat-log"></div>
 
+  <div id="skeleton-loader" class="skeleton-loader hidden">
+    <div class="skeleton-message">
+      <div class="skeleton-avatar"></div>
+      <div class="skeleton-content">
+        <div class="skeleton-line skeleton-line-1"></div>
+        <div class="skeleton-line skeleton-line-2"></div>
+        <div class="skeleton-line skeleton-line-3"></div>
+      </div>
+    </div>
+  </div>
+
   <form
     id="chat-form"
     class="chat-form"
@@ -26,24 +37,157 @@
   const form = document.getElementById("chat-form");
   const input = document.getElementById("chat-input");
   const chatLog = document.getElementById("chat-log");
-  
+  const submitButton = form.querySelector('button[type="submit"]');
+  const skeletonLoader = document.getElementById("skeleton-loader");
+
   // Store conversation history
   let conversationHistory = [];
+  let isLoading = false;
 
+  // Utility: Format timestamp
+  function formatTimestamp(date) {
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+
+    if (isToday) {
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  }
+
+  // Utility: Copy to clipboard
+  async function copyToClipboard(text, button) {
+    try {
+      await navigator.clipboard.writeText(text);
+      button.classList.add('copied');
+      setTimeout(() => button.classList.remove('copied'), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }
+
+  // Utility: Smooth scroll to bottom
+  function smoothScrollToBottom() {
+    chatLog.scrollTo({
+      top: chatLog.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+
+  // Loading state management
+  function showLoadingState() {
+    isLoading = true;
+    skeletonLoader.classList.remove('hidden');
+    skeletonLoader.classList.add('visible');
+    submitButton.classList.add('loading');
+    submitButton.disabled = true;
+    input.disabled = true;
+    smoothScrollToBottom();
+  }
+
+  function hideLoadingState() {
+    isLoading = false;
+    skeletonLoader.classList.remove('visible');
+    skeletonLoader.classList.add('hidden');
+    submitButton.classList.remove('loading');
+    submitButton.disabled = false;
+    input.disabled = false;
+  }
+
+  // Enhanced message rendering with avatars
+  function appendMessage(role, text, timestamp = new Date()) {
+    const message = document.createElement("div");
+    message.className = `message ${role}`;
+
+    // Create avatar
+    const avatar = document.createElement("div");
+    avatar.className = `message-avatar ${role}-avatar`;
+
+    // User icon (person)
+    const userIcon = `
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    `;
+
+    // AI/Robot icon
+    const assistantIcon = `
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    `;
+
+    avatar.innerHTML = role === 'user' ? userIcon : assistantIcon;
+
+    // Create message body container
+    const messageBody = document.createElement("div");
+    messageBody.className = "message-body";
+    messageBody.style.flex = "1";
+
+    const content = document.createElement("div");
+    content.className = "message-content";
+    content.textContent = text;
+
+    const meta = document.createElement("div");
+    meta.className = "message-meta";
+
+    const time = document.createElement("span");
+    time.className = "message-time";
+    time.textContent = formatTimestamp(timestamp);
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "copy-btn";
+    copyBtn.setAttribute("aria-label", "Copy message");
+    copyBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+    `;
+    copyBtn.addEventListener("click", () => copyToClipboard(text, copyBtn));
+
+    meta.appendChild(time);
+    meta.appendChild(copyBtn);
+    messageBody.appendChild(content);
+    messageBody.appendChild(meta);
+
+    message.appendChild(avatar);
+    message.appendChild(messageBody);
+
+    chatLog.appendChild(message);
+
+    requestAnimationFrame(() => {
+      smoothScrollToBottom();
+    });
+  }
+
+  // Form submission handler
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const question = input.value.trim();
-    if (!question) return;
+    if (!question || isLoading) return;
 
     const formData = new FormData();
     formData.append('question', question);
-    // Send conversation history as JSON
     formData.append('history', JSON.stringify(conversationHistory));
-    console.log("FormData contents:", Object.fromEntries(formData));
 
-    appendMessage("user", question);
+    const timestamp = new Date();
+    appendMessage("user", question, timestamp);
     input.value = "";
+
+    showLoadingState();
 
     try {
       const response = await fetch(form.action, {
@@ -51,34 +195,48 @@
         body: formData,
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
       const answer = result["answer"];
 
-      appendMessage("assistant", answer);
-      
-      // Update conversation history
+      hideLoadingState();
+
+      // Small delay for natural feel
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      const answerTimestamp = new Date();
+      appendMessage("assistant", answer, answerTimestamp);
+
       conversationHistory.push(
         { role: "user", content: question },
         { role: "assistant", content: answer }
       );
-      
-      // Keep only last 10 exchanges (20 messages) to avoid too long context
+
       if (conversationHistory.length > 20) {
         conversationHistory = conversationHistory.slice(-20);
       }
-      
+
     } catch (err) {
-      appendMessage("assistant", "⚠️ Error contacting server");
-      console.error(err);
+      hideLoadingState();
+      appendMessage("assistant", "⚠️ Error contacting server. Please try again.", new Date());
+      console.error('Fetch error:', err);
     }
   });
 
-  function appendMessage(role, text) {
-    const message = document.createElement("div");
-    message.className = `message ${role}`;
-    message.innerText = text;
-    chatLog.appendChild(message);
-    chatLog.scrollTop = chatLog.scrollHeight;
-  }
+  // Auto-focus input on load
+  window.addEventListener('DOMContentLoaded', () => {
+    input.focus();
+  });
+
+  // Keyboard shortcut: Cmd/Ctrl + K to focus input
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      input.focus();
+    }
+  });
 </script>
 {% endblock %}
