@@ -2,7 +2,7 @@
 
 # Install production dependencies
 install:
-	poetry install --no-dev --no-root
+	poetry install --only main --no-root
 
 # Install all dependencies including dev
 install-dev:
